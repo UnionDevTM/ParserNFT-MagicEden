@@ -1,0 +1,260 @@
+import logging
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import (
+    Application,  # Заменяет Updater
+    CommandHandler,
+    MessageHandler,
+    filters,  # Используем filters вместо Filters
+    CallbackContext,
+)
+import time
+
+# Настройка логирования
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Функция для записи ID пользователя в файл
+def save_user_id(user_id, username):
+    with open("Clientsbot.txt", "a") as file:
+        file.write(f"{user_id}\n")
+    with open("UsersNameID.txt", "a") as file:
+        file.write(f"{username}:{user_id}\n")
+
+# Функция для удаления ID пользователя из файла (остановка сигналов)
+def stop_user_id(user_id):
+    with open("Clientsbot.txt", "r") as file:
+        lines = file.readlines()
+    with open("Clientsbot.txt", "w") as file:
+        for line in lines:
+            if line.strip() != str(user_id):
+                file.write(line)
+
+# Функция для отправки периодических сообщений
+async def send_periodic_messages(context: CallbackContext):
+    with open("Clientsbot.txt", "r") as file:
+        user_ids = file.readlines()
+    for user_id in user_ids:
+        await context.bot.send_message(chat_id=user_id.strip(), text="Текст сообщения")
+
+# Обработчик команды /start
+async def start(update: Update, context: CallbackContext):
+    user = update.message.from_user
+    welcome_message = f"Привет, {user.username}! Добро пожаловать в бота."
+    await update.message.reply_text(
+        welcome_message,
+        reply_markup=ReplyKeyboardMarkup([["Получать Сигналы"]], resize_keyboard=True),
+    )
+
+# Обработчик текстовых сообщений
+async def handle_message(update: Update, context: CallbackContext):
+    text = update.message.text
+    user = update.message.from_user
+    if text == "Получать Сигналы":
+        save_user_id(user.id, user.username)
+        await update.message.reply_text(
+            "Теперь вы будете получать сигналы.",
+            reply_markup=ReplyKeyboardMarkup([["Остановить сигнал"]], resize_keyboard=True),
+        )
+    elif text == "Остановить сигнал":
+        stop_user_id(user.id)
+        await update.message.reply_text(
+            "Сигналы остановлены.",
+            reply_markup=ReplyKeyboardMarkup([["Возобновить сигнал"]], resize_keyboard=True),
+        )
+    elif text == "Возобновить сигнал":
+        save_user_id(user.id, user.username)
+        await update.message.reply_text(
+            "Сигналы возобновлены.",
+            reply_markup=ReplyKeyboardMarkup([["Остановить сигнал"]], resize_keyboard=True),
+        )
+
+# Основная функция
+def main():
+    # Вставьте сюда ваш токен
+    application = Application.builder().token("YOUR_TOKEN_API").build()
+
+    # Регистрация обработчиков
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Запуск периодической рассылки
+    job_queue = application.job_queue
+    job_queue.run_repeating(send_periodic_messages, interval=60.0, first=0.0)
+
+    # Запуск бота
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
+
+import logging
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    MessageHandler,
+    filters,  # Используем filters вместо Filters
+    CallbackContext,
+)
+import time
+import threading
+
+# Настройка логирования
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# Функция для записи ID пользователя в файл
+def save_user_id(user_id, username):
+    with open("Clientsbot.txt", "a") as file:
+        file.write(f"{user_id}\n")
+    with open("UsersNameID.txt", "a") as file:
+        file.write(f"{username}:{user_id}\n")
+
+# Функция для удаления ID пользователя из файла (остановка сигналов)
+def stop_user_id(user_id):
+    with open("Clientsbot.txt", "r") as file:
+        lines = file.readlines()
+    with open("Clientsbot.txt", "w") as file:
+        for line in lines:
+            if line.strip() != str(user_id):
+                file.write(line)
+
+# Функция для отправки периодических сообщений
+def send_periodic_messages(context: CallbackContext):
+    with open("Clientsbot.txt", "r") as file:
+        user_ids = file.readlines()
+    for user_id in user_ids:
+        context.bot.send_message(chat_id=user_id.strip(), text="Текст сообщения")
+
+# Обработчик команды /start
+def start(update: Update, context: CallbackContext):
+    user = update.message.from_user
+    welcome_message = f"Привет, {user.username}! Добро пожаловать в бота."
+    update.message.reply_text(
+        welcome_message,
+        reply_markup=ReplyKeyboardMarkup([["Получать Сигналы"]], resize_keyboard=True),
+    )
+
+# Обработчик текстовых сообщений
+def handle_message(update: Update, context: CallbackContext):
+    text = update.message.text
+    user = update.message.from_user
+    if text == "Получать Сигналы":
+        save_user_id(user.id, user.username)
+        update.message.reply_text(
+            "Теперь вы будете получать сигналы.",
+            reply_markup=ReplyKeyboardMarkup([["Остановить сигнал"]], resize_keyboard=True),
+        )
+    elif text == "Остановить сигнал":
+        stop_user_id(user.id)
+        update.message.reply_text(
+            "Сигналы остановлены.",
+            reply_markup=ReplyKeyboardMarkup([["Возобновить сигнал"]], resize_keyboard=True),
+        )
+    elif text == "Возобновить сигнал":
+        save_user_id(user.id, user.username)
+        update.message.reply_text(
+            "Сигналы возобновлены.",
+            reply_markup=ReplyKeyboardMarkup([["Остановить сигнал"]], resize_keyboard=True),
+        )
+
+# Основная функция
+def main():
+    # Вставьте сюда ваш токен
+    updater = Updater("", use_context=True)
+
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Запуск периодической рассылки
+    j = updater.job_queue
+    j.run_repeating(send_periodic_messages, interval=60.0, first=0.0)
+
+    # Запуск бота
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
+
+import logging
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+import time
+import threading
+
+# Настройка логирования
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Функция для записи ID пользователя в файл
+def save_user_id(user_id, username):
+    with open("Clientsbot.txt", "a") as file:
+        file.write(f"{user_id}\n")
+    with open("UsersNameID.txt", "a") as file:
+        file.write(f"{username}:{user_id}\n")
+
+# Функция для удаления ID пользователя из файла (остановка сигналов)
+def stop_user_id(user_id):
+    with open("Clientsbot.txt", "r") as file:
+        lines = file.readlines()
+    with open("Clientsbot.txt", "w") as file:
+        for line in lines:
+            if line.strip() != str(user_id):
+                file.write(line)
+
+# Функция для отправки периодических сообщений
+def send_periodic_messages(context: CallbackContext):
+    with open("Clientsbot.txt", "r") as file:
+        user_ids = file.readlines()
+    for user_id in user_ids:
+        context.bot.send_message(chat_id=user_id.strip(), text="Текст сообщения")
+
+# Обработчик команды /start
+def start(update: Update, context: CallbackContext):
+    user = update.message.from_user
+    welcome_message = f"Привет, {user.username}! Добро пожаловать в бота."
+    update.message.reply_text(welcome_message, reply_markup=ReplyKeyboardMarkup([['Получать Сигналы']], resize_keyboard=True))
+
+# Обработчик текстовых сообщений
+def handle_message(update: Update, context: CallbackContext):
+    text = update.message.text
+    user = update.message.from_user
+    if text == "Получать Сигналы":
+        save_user_id(user.id, user.username)
+        update.message.reply_text("Теперь вы будете получать сигналы.", reply_markup=ReplyKeyboardMarkup([['Остановить сигнал']], resize_keyboard=True))
+    elif text == "Остановить сигнал":
+        stop_user_id(user.id)
+        update.message.reply_text("Сигналы остановлены.", reply_markup=ReplyKeyboardMarkup([['Возобновить сигнал']], resize_keyboard=True))
+    elif text == "Возобновить сигнал":
+        save_user_id(user.id, user.username)
+        update.message.reply_text("Сигналы возобновлены.", reply_markup=ReplyKeyboardMarkup([['Остановить сигнал']], resize_keyboard=True))
+
+# Основная функция
+def main():
+    # Вставьте сюда ваш токен
+    updater = Updater("", use_context=True)
+
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+
+    # Запуск периодической рассылки
+    j = updater.job_queue
+    j.run_repeating(send_periodic_messages, interval=60.0, first=0.0)
+
+    # Запуск бота
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
+
+
